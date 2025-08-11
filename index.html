@@ -1,0 +1,85 @@
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão Empresarial</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <script type="importmap">
+        {
+            "imports": {
+                "utils": "./utils.js",
+                "dashboard": "./modules/dashboard.js",
+                "suppliers": "./modules/suppliers.js",
+                "contracts": "./modules/contracts.js",
+                "expenses": "./modules/expenses.js",
+                "services": "./modules/services.js",
+                "tasks": "./modules/tasks.js",
+                "invoices": "./modules/invoices.js",
+                "inventory": "./modules/inventory.js",
+                "users": "./modules/users.js"
+            }
+        }
+    </script>
+    <!-- Firebase SDKs - REMOVED: Now using Cloudflare Workers/D1. -->
+    
+</head>
+<body>
+    <div id="login-screen" class="active">
+        <div class="login-card">
+            <h2>Bem-vindo de Volta!</h2>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="username">Usuário (E-mail):</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Senha:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Entrar</button>
+            </form>
+            <p class="login-info">
+                <strong>Nota Importante:</strong> Este sistema agora utiliza <strong>Cloudflare Workers e D1</strong> para persistência de dados e gerenciamento de usuários.
+                <br>
+                <strong>Para acessar:</strong> Você precisará de um backend Cloudflare Worker configurado para se conectar ao seu D1. As credenciais de login dependem dos usuários que você cadastrar neste backend.
+                <br>
+                Este é apenas o frontend. A implementação do Cloudflare Worker e do D1 não está incluída neste pacote, pois são componentes de backend. Você precisará configurá-los separadamente.
+            </p>
+            <div id="login-alert-container"></div>
+        </div>
+    </div>
+
+    <div id="app-container" class="hidden">
+        <aside id="sidebar">
+            <div class="logo">
+                <h1>Gerenciador</h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#" data-module="dashboard">📊 Dashboard</a></li>
+                    <li><a href="#" data-module="tasks">✅ Tarefas Diárias</a></li>
+                    <li><a href="#" data-module="inventory">🖥️ Inventário de Equipamentos</a></li>
+                    <li><a href="#" data-module="suppliers">📦 Fornecedores</a></li>
+                    <li><a href="#" data-module="contracts">📜 Contratos</a></li>
+                    <li><a href="#" data-module="expenses">💸 Despesas</a></li>
+                    <li><a href="#" data-module="services">⚙️ Serviços</a></li>
+                    <li><a href="#" data-module="invoices">📑 Notas Fiscais</a></li>
+                    <li><a href="#" data-module="users">👥 Gerenciar Usuários</a></li>
+                </ul>
+            </nav>
+            <button id="logout-btn" class="btn btn-danger">Sair</button>
+        </aside>
+        <main id="main-content">
+            <header>
+                <h2 id="main-header-title">Bem-vindo ao Sistema de Gestão</h2>
+            </header>
+            <div id="app-module-content">
+                <!-- Content for selected module will be loaded here -->
+                <p>Selecione uma opção no menu lateral para começar.</p>
+            </div>
+        </main>
+    </div>
+    <script type="module" src="main.js"></script>
+</body>
+</html>
