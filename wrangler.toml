@@ -1,16 +1,16 @@
 name = "sge-backend"
 main = "src/index.js"
-compatibility_date = "2024-01-01" # Use uma data recente
+compatibility_date = "2025-08-11" # Use uma data recente
 
 # Este arquivo wrangler.toml é para o Cloudflare Pages/Workers via Git.
 # As variáveis de ambiente e bindings D1 serão configurados diretamente no painel do Cloudflare.
 # Portanto, as seções `[vars]` e `[[d1_databases]]` não são necessárias aqui,
 # mas as deixo comentadas para referência de como seriam se você usasse `wrangler deploy` localmente.
 
-# [[d1_databases]]
-# binding = "DB"
-# database_name = "sge-database"
-# database_id = "YOUR_DATABASE_ID_HERE" # Este será configurado no painel do Cloudflare
+ [[d1_databases]]
+ binding = "DB"
+ database_name = "sge-database"
+ database_id = "8c1c9fd4-f5bd-4aea-a2d6-a39bd2b2c1ac" # Este será configurado no painel do Cloudflare
 
-# [vars]
-# JWT_SECRET = "YOUR_SUPER_SECRET_KEY_HERE" # Este será configurado no painel do Cloudflare
+ [vars]
+ JWT_SECRET = "3f0d1d0e4b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a" # Este será configurado no painel do Cloudflare
