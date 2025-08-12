@@ -111,9 +111,10 @@ export function showAlert(container, message, type = 'success', duration = 3000)
 // --- API-based Data Management (replaces local storage for persistence) ---
 
 // IMPORTANT: Replace this with your actual Cloudflare Worker URL
-const API_BASE_URL = 'https://your-cloudflare-worker-url.workers.dev/api';
+const API_BASE_URL = 'https://sge-backend.alexgaulista.workers.dev';
 const JWT_TOKEN_KEY = 'jwt_token';
 const USER_DATA_KEY = 'current_user_data'; // Store user ID and permissions here
+
 
 /**
  * Helper to get the current JWT token from localStorage.
