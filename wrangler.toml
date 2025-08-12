@@ -1,5 +1,5 @@
 name = "sge-backend"
-main = "src/index.js"
+main = "index.js"
 compatibility_date = "2025-08-11" # Use uma data recente
 
 # Este arquivo wrangler.toml é para o Cloudflare Pages/Workers via Git.
