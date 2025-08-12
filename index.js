@@ -283,23 +283,41 @@ router.all('*', () => new Response('Not Found', { status: 404 }));
 
 export default {
   async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+
+    // CORS para testes e frontend no mesmo domínio (ajuste conforme seu caso)
     const corsHeaders = {
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET,HEAD,POST,PUT,DELETE,OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400'
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type,Authorization",
     };
-    if (request.method === 'OPTIONS') {
+
+    if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
-    try {
-      const response = await router.handle(request, env, ctx);
-      if (!response) return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
-      for (const [k, v] of Object.entries(corsHeaders)) response.headers.set(k, v);
-      if (!response.headers.get('Content-Type')) response.headers.set('Content-Type', 'application/json');
-      return response;
-    } catch (error) {
-      return new Response(JSON.stringify({ message: 'Internal Server Error' }), { status: 500, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
+
+    // Rota login - POST /login
+    if (request.method === "POST" && url.pathname === "/login") {
+      try {
+        const { email, password } = await request.json();
+        // Validação simples (troque pelo seu login real)
+        if (email === "teste@teste.com" && password === "teste123") {
+          const fakeToken = "token-1234567890"; // JWT real aqui
+          const user = { id: "1", email, permissions: ["user"] };
+          const body = JSON.stringify({ token: fakeToken, user });
+          return new Response(body, { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        } else {
+          return new Response(JSON.stringify({ message: "Usuário ou senha inválidos" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+        }
+      } catch {
+        return new Response(JSON.stringify({ message: "Erro no corpo da requisição" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      }
     }
+
+    // Outras rotas podem ser implementadas abaixo...
+
+    return new Response("Not found", { status: 404, headers: corsHeaders });
   }
+};
+
 };
