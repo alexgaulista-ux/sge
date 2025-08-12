@@ -14,8 +14,8 @@ class Router {
     const method = request.method.toUpperCase();
 
     for (const route of this.routes) {
-      // Ajuste: Usar regex para rotas com parâmetros e garantir correspondência exata para rotas sem
-      const routeRegex = new RegExp(`^${route.path.replace(/:[^/]+/g, '([^/]+)')}$`);
+      // Regex que aceita parâmetro e barra opcional no final da rota
+      const routeRegex = new RegExp(`^${route.path.replace(/:[^/]+/g, '([^/]+)')}/?$`);
       const match = url.pathname.match(routeRegex);
 
       if ((route.method === method || route.method === 'ALL') && match) {
@@ -28,13 +28,12 @@ class Router {
     return null;
   }
 
-  // Ajuste: Extrair parâmetros usando o match da regex
   extractParams(routePath, match) {
     const params = {};
     const routeParts = routePath.split('/');
     routeParts.forEach((part, i) => {
       if (part.startsWith(':')) {
-        params[part.slice(1)] = match[i + 1]; // match[0] é a string completa, parâmetros começam em match[1]
+        params[part.slice(1)] = match[i + 1];
       }
     });
     return params;
@@ -92,7 +91,7 @@ async function verifyJwt(token, secret) {
     const payload = JSON.parse(base64UrlDecode(encodedPayload));
     if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expired');
     return payload;
-  } catch (e) { // Capturar o erro para logar ou retornar mensagem mais específica
+  } catch (e) {
     console.error("JWT verification failed:", e);
     throw new Error('Invalid token');
   }
@@ -116,7 +115,12 @@ async function authenticate(request, env) {
 function authorize(requiredPermission) {
   return async (request, env) => {
     if (!request.user) return new Response(JSON.stringify({ message: 'Forbidden: User not authenticated' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
-    const userPermissions = Array.isArray(request.user.permissions) ? request.user.permissions : JSON.parse(request.user.permissions || '[]');
+    let userPermissions = [];
+    try {
+      userPermissions = Array.isArray(request.user.permissions) ? request.user.permissions : JSON.parse(request.user.permissions || '[]');
+    } catch {
+      userPermissions = [];
+    }
     if (!userPermissions.includes(requiredPermission) && !userPermissions.includes('admin')) {
       return new Response(JSON.stringify({ message: 'Forbidden: Insufficient permissions' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
@@ -125,13 +129,12 @@ function authorize(requiredPermission) {
 }
 
 function handleDbError(error, message = 'Database error') {
-  console.error(`${message}:`, error); // Logar o erro no console do Worker
+  console.error(`${message}:`, error);
   return new Response(JSON.stringify({ message: `${message}: ${error.message || error}` }), { status: 500, headers: { 'Content-Type': 'application/json' } });
 }
 
 // --- Rotas ---
 
-// Rota de Login (agora é a única rota de login e usa o D1)
 router.post('/api/login', async (request, env) => {
   try {
     const { email, password } = await request.json();
@@ -145,10 +148,9 @@ router.post('/api/login', async (request, env) => {
       return new Response(JSON.stringify({ message: 'Invalid credentials' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
     }
 
-    // Certifique-se de que as permissões são um array de strings
     const userPermissions = Array.isArray(user.permissions) ? user.permissions : JSON.parse(user.permissions || '[]');
 
-    const token = await signJwt({ id: user.id, email: user.email, permissions: userPermissions }, env.JWT_SECRET, 3600); // Token válido por 1 hora
+    const token = await signJwt({ id: user.id, email: user.email, permissions: userPermissions }, env.JWT_SECRET, 3600);
     const userResponse = { id: user.id, email: user.email, permissions: userPermissions };
 
     return new Response(JSON.stringify({ token, user: userResponse }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -162,7 +164,6 @@ router.post('/api/init-db', async (request, env) => {
     if (String(env.ALLOW_DB_INIT).toLowerCase() !== 'true') {
       return new Response(JSON.stringify({ message: 'Init disabled' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
-    // Autenticação e autorização para init-db
     const authResp = await authenticate(request, env);
     if (authResp) return authResp;
     const perms = Array.isArray(request.user.permissions) ? request.user.permissions : JSON.parse(request.user.permissions || '[]');
@@ -181,7 +182,6 @@ router.post('/api/init-db', async (request, env) => {
       } catch (e) {
         results.push({ statement: st, success: false, error: e.message });
         console.error(`Error executing statement: ${st}`, e);
-        // Não lançar erro imediatamente, continue para ver todos os resultados
       }
     }
     return new Response(JSON.stringify({ message: 'DB initialization attempt complete', results }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -193,7 +193,7 @@ router.post('/api/init-db', async (request, env) => {
 router.post('/api/users', async (request, env) => {
   const authResp = await authenticate(request, env);
   if (authResp) return authResp;
-  const authzResp = await authorize('users')(request, env); // Permissão 'users' para criar usuários
+  const authzResp = await authorize('users')(request, env);
   if (authzResp) return authzResp;
   try {
     const { email, password, permissions } = await request.json();
@@ -214,7 +214,7 @@ router.post('/api/users', async (request, env) => {
 router.get('/api/users', async (request, env) => {
   const authResp = await authenticate(request, env);
   if (authResp) return authResp;
-  const authzResp = await authorize('users')(request, env); // Permissão 'users' para listar usuários
+  const authzResp = await authorize('users')(request, env);
   if (authzResp) return authzResp;
   try {
     const { results } = await env.DB.prepare('SELECT id, email, permissions FROM users').all();
@@ -231,7 +231,6 @@ router.get('/api/users/:id', async (request, env, ctx) => {
   const { id } = ctx.params;
   try {
     const requesterPerms = Array.isArray(request.user.permissions) ? request.user.permissions : JSON.parse(request.user.permissions || '[]');
-    // Um usuário pode ver seus próprios dados OU um usuário com permissão 'users' pode ver qualquer um
     if (request.user.id !== id && !requesterPerms.includes('users')) {
       return new Response(JSON.stringify({ message: 'Forbidden: You can only view your own profile or need "users" permission.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
@@ -253,8 +252,6 @@ router.put('/api/users/:id', async (request, env, ctx) => {
     const requesterPerms = Array.isArray(request.user.permissions) ? request.user.permissions : JSON.parse(request.user.permissions || '[]');
     const canManageUsers = requesterPerms.includes('users');
 
-    // Um usuário pode atualizar seus próprios dados (exceto permissões, a menos que seja admin)
-    // OU um usuário com permissão 'users' pode atualizar qualquer um
     if (request.user.id !== id && !canManageUsers) {
       return new Response(JSON.stringify({ message: 'Forbidden: You can only update your own profile or need "users" permission.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
@@ -264,15 +261,13 @@ router.put('/api/users/:id', async (request, env, ctx) => {
 
     if (email) { updateFields.push('email = ?'); bindValues.push(email); }
     if (password) { const hashedPassword = await sha256(password); updateFields.push('password_hash = ?'); bindValues.push(hashedPassword); }
-    // Permissões só podem ser atualizadas por quem tem a permissão 'users'
     if (permissions && canManageUsers) { updateFields.push('permissions = ?'); bindValues.push(JSON.stringify(permissions)); }
-    // Se o usuário está tentando atualizar suas próprias permissões sem ser admin, isso deve ser impedido
     if (request.user.id === id && permissions && !canManageUsers) {
-        return new Response(JSON.stringify({ message: 'Forbidden: You cannot update your own permissions.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ message: 'Forbidden: You cannot update your own permissions.' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     }
 
-
     if (updateFields.length === 0) return new Response(JSON.stringify({ message: 'No fields to update' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+
     bindValues.push(id);
     await env.DB.prepare(`UPDATE users SET ${updateFields.join(', ')} WHERE id = ?`).bind(...bindValues).run();
     return new Response(JSON.stringify({ message: 'User updated successfully' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -287,7 +282,7 @@ router.put('/api/users/:id', async (request, env, ctx) => {
 router.delete('/api/users/:id', async (request, env, ctx) => {
   const authResp = await authenticate(request, env);
   if (authResp) return authResp;
-  const authzResp = await authorize('users')(request, env); // Permissão 'users' para deletar usuários
+  const authzResp = await authorize('users')(request, env);
   if (authzResp) return authzResp;
   const { id } = ctx.params;
   if (request.user.id === id) return new Response(JSON.stringify({ message: 'Cannot delete yourself' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
@@ -302,20 +297,15 @@ router.delete('/api/users/:id', async (request, env, ctx) => {
 router.get('/api/me', async (request, env) => {
   const authResp = await authenticate(request, env);
   if (authResp) return authResp;
-  // Retorna os dados do usuário logado (já estão em request.user do middleware authenticate)
   return new Response(JSON.stringify({ user: request.user }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 });
 
-// Rota para lidar com qualquer outra requisição que não corresponda às rotas definidas
 router.all('*', () => new Response('Not Found', { status: 404 }));
 
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-
-    // CORS para testes e frontend no mesmo domínio (ajuste conforme seu caso)
     const corsHeaders = {
-      "Access-Control-Allow-Origin": "*", // Em produção, restrinja isso ao seu domínio de frontend
+      "Access-Control-Allow-Origin": "*", // Restrinja em produção
       "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
       "Access-Control-Allow-Headers": "Content-Type,Authorization",
     };
@@ -324,18 +314,15 @@ export default {
       return new Response(null, { status: 204, headers: corsHeaders });
     }
 
-    // Tenta rotear a requisição através do nosso Router
     const response = await router.handle(request, env, ctx);
 
     if (response) {
-      // Adiciona os cabeçalhos CORS à resposta do router
       for (const header in corsHeaders) {
         response.headers.set(header, corsHeaders[header]);
       }
       return response;
     }
 
-    // Se o router não encontrou uma rota, retorna 404 com CORS
     return new Response("Not Found", { status: 404, headers: corsHeaders });
   }
 };
