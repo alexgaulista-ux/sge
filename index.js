@@ -1,4 +1,5 @@
-import { Router } from 'itty-router';
+import { Router } from 'https://cdn.jsdelivr.net/npm/itty-router@2.7.5/dist/esm/index.min.js';
+
 
 // --- Funções de Hash e JWT (Implementação simplificada para Workers sem Node.js) ---
 // ATENÇÃO: Esta implementação de hash de senha (SHA-256) e JWT é simplificada
