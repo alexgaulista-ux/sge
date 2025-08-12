@@ -57,17 +57,30 @@ export function showAlert(container, message, type = 'success', duration = 3000)
     setTimeout(() => alertDiv.remove(), duration);
 }
 
-function getToken() { return localStorage.getItem(JWT_TOKEN_KEY); }
-function getUser Data() { const d = localStorage.getItem(USER_DATA_KEY); return d ? JSON.parse(d) : null; }
+function getToken() {
+    return localStorage.getItem(JWT_TOKEN_KEY);
+}
+
+function getUserData() { // Corrigido: nome correto sem espaço
+    const d = localStorage.getItem(USER_DATA_KEY);
+    return d ? JSON.parse(d) : null;
+}
 
 async function safeJson(response) {
     const text = await response.text();
-    try { return JSON.parse(text); } catch { return { text }; }
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { text };
+    }
 }
 
 export async function apiCall(endpoint, method = 'GET', data = null) {
-    // Aqui chama rotas relativas, sem /api prefix
-    const url = endpoint.startsWith("/") ? endpoint : `/api/${endpoint}`;
+    // Ajustado para usar endpoint relativo completo, sem duplicar /api
+    let url = endpoint;
+    if (!endpoint.startsWith('/')) {
+        url = '/' + endpoint;
+    }
     const headers = { 'Content-Type': 'application/json' };
     const token = getToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -84,9 +97,10 @@ export async function apiCall(endpoint, method = 'GET', data = null) {
     return safeJson(res);
 }
 
-export async function loginUser (email, password) {
+export async function loginUser(email, password) {
     try {
-        const response = await apiCall('/api/login', 'POST', { email, password });
+        // Endpoint corrigido para não duplicar /api
+        const response = await apiCall('/login', 'POST', { email, password });
         if (response.token && response.user) {
             localStorage.setItem(JWT_TOKEN_KEY, response.token);
             localStorage.setItem(USER_DATA_KEY, JSON.stringify(response.user));
@@ -103,7 +117,7 @@ export async function loginUser (email, password) {
     }
 }
 
-export async function logoutUser () {
+export async function logoutUser() {
     localStorage.removeItem(JWT_TOKEN_KEY);
     localStorage.removeItem(USER_DATA_KEY);
     document.dispatchEvent(new CustomEvent('userPermissionsChanged'));
@@ -111,4 +125,7 @@ export async function logoutUser () {
     return true;
 }
 
-// (Restante dos helpers de usuário, saveUser , deleteUser , etc, idem, chamando apiCall com endpoints relativos)
+// Você deve exportar as funções para pegar usuário e token, para uso no main.js:
+export { getToken, getUserData };
+
+// Aqui você pode continuar implementando saveUser, deleteUser etc usando apiCall('/users', ...)
