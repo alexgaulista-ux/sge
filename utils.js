@@ -64,15 +64,20 @@ export function showAlert(container, message, type = 'success', duration = 3000)
 }
 
 // Detect API base URL:
-// If running in browser, point to same origin + /api so frontend hosted on Pages can call the Worker at /api/...
+// Antes usava `${window.location.origin}/api`, agora vamos remover o "/api"
+// e usar a origem do site ou o fallback para o Worker.
 let API_BASE_URL = null;
 try {
     if (typeof window !== 'undefined' && window.location) {
-        API_BASE_URL = `${window.location.origin}/api`;
+        API_BASE_URL = `${window.location.origin}`;
     }
 } catch (e) {
+    API_BASE_URL = 'https://sge-backend.alexgaulista.workers.dev';
+}
+
+} catch (e) {
     // fallback to configured worker url (keep existing one as fallback)
-    API_BASE_URL = 'https://sge-backend.alexgaulista.workers.dev/api';
+    API_BASE_URL = 'https://sge-backend.alexgaulista.workers.dev';
 }
 const JWT_TOKEN_KEY = 'jwt_token';
 const USER_DATA_KEY = 'current_user_data';
