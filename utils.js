@@ -25,9 +25,9 @@ async function loadSound(url) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     try {
-        successBuffer = await loadSound('success_sound.mp3');
-        errorBuffer = await loadSound('error_sound.mp3');
-        deleteBuffer = await loadSound('delete_sound.mp3');
+        successBuffer = await loadSound('./MultipleFiles/success_sound.mp3');
+        errorBuffer = await loadSound('./MultipleFiles/error_sound.mp3');
+        deleteBuffer = await loadSound('./MultipleFiles/delete_sound.mp3');
     } catch (error) {
         console.error('Error loading sound effects:', error);
     }
@@ -58,7 +58,7 @@ export function showAlert(container, message, type = 'success', duration = 3000)
 }
 
 function getToken() { return localStorage.getItem(JWT_TOKEN_KEY); }
-function getUserData() { const d = localStorage.getItem(USER_DATA_KEY); return d ? JSON.parse(d) : null; }
+function getUser Data() { const d = localStorage.getItem(USER_DATA_KEY); return d ? JSON.parse(d) : null; }
 
 async function safeJson(response) {
     const text = await response.text();
@@ -67,7 +67,7 @@ async function safeJson(response) {
 
 export async function apiCall(endpoint, method = 'GET', data = null) {
     // Aqui chama rotas relativas, sem /api prefix
-    const url = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+    const url = endpoint.startsWith("/") ? endpoint : `/api/${endpoint}`;
     const headers = { 'Content-Type': 'application/json' };
     const token = getToken();
     if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -84,9 +84,9 @@ export async function apiCall(endpoint, method = 'GET', data = null) {
     return safeJson(res);
 }
 
-export async function loginUser(email, password) {
+export async function loginUser (email, password) {
     try {
-        const response = await apiCall('/login', 'POST', { email, password });
+        const response = await apiCall('/api/login', 'POST', { email, password });
         if (response.token && response.user) {
             localStorage.setItem(JWT_TOKEN_KEY, response.token);
             localStorage.setItem(USER_DATA_KEY, JSON.stringify(response.user));
@@ -103,7 +103,7 @@ export async function loginUser(email, password) {
     }
 }
 
-export async function logoutUser() {
+export async function logoutUser () {
     localStorage.removeItem(JWT_TOKEN_KEY);
     localStorage.removeItem(USER_DATA_KEY);
     document.dispatchEvent(new CustomEvent('userPermissionsChanged'));
@@ -111,5 +111,4 @@ export async function logoutUser() {
     return true;
 }
 
-// (Restante dos helpers de usuário, saveUser, deleteUser, etc, idem, chamando apiCall com endpoints relativos)
-
+// (Restante dos helpers de usuário, saveUser , deleteUser , etc, idem, chamando apiCall com endpoints relativos)

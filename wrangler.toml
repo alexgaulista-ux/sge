@@ -3,15 +3,18 @@ main = "index.js"
 compatibility_date = "2025-08-11"
 
 # Configure these bindings in Cloudflare Dashboard (Workers) or via wrangler secrets/env.
- [[d1_databases]]
- binding = "DB"
- database_name = "sge-database"
- database_id = "8c1c9fd4-f5bd-4aea-a2d6-a39bd2b2c1ac"
+[[d1_databases]]
+binding = "DB"
+database_name = "sge-database"
+database_id = "8c1c9fd4-f5bd-4aea-a2d6-a39bd2b2c1ac"
 
 [vars]
 # JWT_SECRET must be set in the Cloudflare dashboard or via wrangler environment
+# É CRÍTICO que este segredo seja forte e mantido em segredo.
+# Use `wrangler secret put JWT_SECRET` para definir isso no seu ambiente de produção.
+# Para desenvolvimento local, você pode deixá-lo aqui, mas remova-o antes de implantar.
 JWT_SECRET = "3f0d1d0e4b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a"
 
 # Optional:
-#ALLOW_DB_INIT = "true"   # Only set to "true" temporarily to allow /api/init-db to run
-# INIT_SQL = "<the full SQL to run to initialize DB>"  # or send SQL in POST body to /api/init-db
+# ALLOW_DB_INIT = "true"   # Descomente e defina como "true" TEMPORARIAMENTE para permitir /api/init-db
+# INIT_SQL = "<the full SQL to run to initialize DB>"  # ou envie SQL no corpo POST para /api/init-db

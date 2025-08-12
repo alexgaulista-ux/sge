@@ -1,16 +1,16 @@
-import { isLoggedIn, loginUser, logoutUser, getCurrentUserPermissions, getCurrentUserId, showAlert, getInitialLoginState } from 'utils';
+import { isLoggedIn, loginUser , logoutUser , getCurrentUser Permissions, getCurrentUser Id, showAlert, getInitialLoginState } from 'utils';
 
 // Define the available modules and their paths
 const modules = {
-    dashboard: () => import('dashboard'),
-    tasks: () => import('tasks'),
-    inventory: () => import('inventory'),
-    suppliers: () => import('suppliers'),
-    contracts: () => import('contracts'),
-    expenses: () => import('expenses'),
-    services: () => import('services'),
-    invoices: () => import('invoices'),
-    users: () => import('users')
+    dashboard: () => import('./modules/dashboard.js'),
+    tasks: () => import('./modules/tasks.js'),
+    inventory: () => import('./modules/inventory.js'),
+    suppliers: () => import('./modules/suppliers.js'),
+    contracts: () => import('./modules/contracts.js'),
+    expenses: () => import('./modules/expenses.js'),
+    services: () => import('./modules/services.js'),
+    invoices: () => import('./modules/invoices.js'),
+    users: () => import('./modules/users.js')
 };
 
 const appContainer = document.getElementById('app-container');
@@ -27,10 +27,10 @@ const mainHeaderTitle = document.getElementById('main-header-title');
  * Renders the sidebar links based on user permissions.
  */
 function renderSidebar() {
-    const allowedModules = getCurrentUserPermissions();
+    const allowedModules = getCurrentUser Permissions();
     document.querySelectorAll('#sidebar nav ul li a').forEach(link => {
         const moduleName = link.dataset.module;
-        if (allowedModules.includes(moduleName)) {
+        if (allowedModules.includes(moduleName) || allowedModules.includes('admin')) {
             link.classList.remove('disabled');
             link.style.pointerEvents = 'auto'; // Re-enable pointer events
         } else {
@@ -51,7 +51,7 @@ async function handleLoginSubmit(event) {
     const password = loginForm.password.value;
 
     try {
-        const success = await loginUser(email, password);
+        const success = await loginUser (email, password);
         if (success) {
             loginScreen.classList.remove('active');
             loginScreen.classList.add('hidden');
@@ -59,9 +59,6 @@ async function handleLoginSubmit(event) {
             renderSidebar(); // Render sidebar based on new permissions
             loadModule('dashboard'); // Load dashboard after successful login
         } else {
-            // loginUser already plays error sound and throws for fetch issues.
-            // This 'else' block might only be reached if loginUser returns false without throwing.
-            // However, our current loginUser always throws on API error.
             showAlert(loginAlertContainer, 'Usuário ou senha inválidos. Verifique suas credenciais.', 'error');
         }
     } catch (error) {
@@ -75,7 +72,7 @@ async function handleLoginSubmit(event) {
  */
 async function handleLogout() {
     try {
-        await logoutUser();
+        await logoutUser ();
         appContainer.classList.add('hidden');
         loginScreen.classList.remove('hidden');
         loginScreen.classList.add('active');
@@ -106,14 +103,13 @@ async function loadModule(moduleName) {
     }
 
     // Get permissions after login state is confirmed
-    const userPermissions = getCurrentUserPermissions();
+    const userPermissions = getCurrentUser Permissions();
 
     // Check module permissions
-    if (!userPermissions.includes(moduleName)) {
+    if (!userPermissions.includes(moduleName) && !userPermissions.includes('admin')) {
         showAlert(appModuleContent, 'Você não tem permissão para acessar este módulo.', 'error');
         mainHeaderTitle.textContent = 'Acesso Negado';
         appModuleContent.innerHTML = '<p class="alert alert-error">Você não tem permissão para acessar este módulo.</p>'; // Clear previous content
-        // Do not change active link in sidebar if access is denied
         return;
     }
 
