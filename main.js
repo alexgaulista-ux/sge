@@ -1,4 +1,12 @@
-import { isLoggedIn, loginUser , logoutUser , getCurrentUser Permissions, getCurrentUser Id, showAlert, getInitialLoginState } from 'utils';
+import { 
+  isLoggedIn, 
+  loginUser, 
+  logoutUser, 
+  getCurrentUserPermissions,  // Corrigido: removeu espaço e maiúscula correta
+  getCurrentUserId,           // Corrigido: removeu espaço
+  showAlert, 
+  getInitialLoginState 
+} from 'utils';
 
 // Define the available modules and their paths
 const modules = {
@@ -27,7 +35,7 @@ const mainHeaderTitle = document.getElementById('main-header-title');
  * Renders the sidebar links based on user permissions.
  */
 function renderSidebar() {
-    const allowedModules = getCurrentUser Permissions();
+    const allowedModules = getCurrentUserPermissions();
     document.querySelectorAll('#sidebar nav ul li a').forEach(link => {
         const moduleName = link.dataset.module;
         if (allowedModules.includes(moduleName) || allowedModules.includes('admin')) {
@@ -47,15 +55,16 @@ function renderSidebar() {
  */
 async function handleLoginSubmit(event) {
     event.preventDefault();
-    const email = loginForm.username.value; // Now expects an email
+    const email = loginForm.username.value.trim(); // good practice to trim
     const password = loginForm.password.value;
 
     try {
-        const success = await loginUser (email, password);
+        const success = await loginUser(email, password);
         if (success) {
             loginScreen.classList.remove('active');
             loginScreen.classList.add('hidden');
             appContainer.classList.remove('hidden');
+            appContainer.classList.add('active');
             renderSidebar(); // Render sidebar based on new permissions
             loadModule('dashboard'); // Load dashboard after successful login
         } else {
@@ -72,7 +81,8 @@ async function handleLoginSubmit(event) {
  */
 async function handleLogout() {
     try {
-        await logoutUser ();
+        await logoutUser();
+        appContainer.classList.remove('active');
         appContainer.classList.add('hidden');
         loginScreen.classList.remove('hidden');
         loginScreen.classList.add('active');
@@ -103,7 +113,7 @@ async function loadModule(moduleName) {
     }
 
     // Get permissions after login state is confirmed
-    const userPermissions = getCurrentUser Permissions();
+    const userPermissions = getCurrentUserPermissions();
 
     // Check module permissions
     if (!userPermissions.includes(moduleName) && !userPermissions.includes('admin')) {
@@ -186,6 +196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loginScreen.classList.remove('active');
         loginScreen.classList.add('hidden');
         appContainer.classList.remove('hidden');
+        appContainer.classList.add('active');
         renderSidebar(); // Initial sidebar render
         loadModule('dashboard'); // Load dashboard after successful login
     } else {
