@@ -1,5 +1,6 @@
 import { Router } from 'https://cdn.jsdelivr.net/npm/itty-router@2.7.5/dist/esm/index.min.js';
 
+
 async function sha256(message) {
     const msgBuffer = new TextEncoder().encode(message);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
