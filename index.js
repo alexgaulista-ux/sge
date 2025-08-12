@@ -1,5 +1,10 @@
 import { Router } from 'https://cdn.jsdelivr.net/npm/itty-router@2.7.5/dist/esm/index.min.js';
 
+function base64UrlDecode(str) {
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) str += '=';
+    return atob(str);
+}
 
 async function sha256(message) {
     const msgBuffer = new TextEncoder().encode(message);
@@ -37,10 +42,10 @@ async function verifyJwt(token, secret) {
         const keyData = textEncoder.encode(secret);
         const key = await crypto.subtle.importKey('raw', keyData, { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
         const data = `${encodedHeader}.${encodedPayload}`;
-        const signatureBuffer = Uint8Array.from(atob(encodedSignature.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+        const signatureBuffer = Uint8Array.from(base64UrlDecode(encodedSignature), c => c.charCodeAt(0));
         const isValid = await crypto.subtle.verify({ name: 'HMAC' }, key, signatureBuffer, textEncoder.encode(data));
         if (!isValid) throw new Error('Invalid signature');
-        const payload = JSON.parse(atob(encodedPayload.replace(/-/g, '+').replace(/_/g, '/')));
+        const payload = JSON.parse(base64UrlDecode(encodedPayload));
         if (payload.exp && payload.exp < Math.floor(Date.now() / 1000)) throw new Error('Token expired');
         return payload;
     } catch (err) {
@@ -81,6 +86,8 @@ function handleDbError(error, message = 'Database error') {
 }
 
 // --- Core routes (login + CRUD) --
+// Note: ctx used for params
+
 router.post('/api/login', async (request, env) => {
     try {
         const { email, password } = await request.json();
@@ -100,24 +107,20 @@ router.post('/api/login', async (request, env) => {
     }
 });
 
-// Optional DB init endpoint (protected by env var + admin auth)
 router.post('/api/init-db', async (request, env) => {
     try {
         if (String(env.ALLOW_DB_INIT).toLowerCase() !== 'true') {
             return new Response(JSON.stringify({ message: 'Init disabled' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
         }
-        // Authenticate admin
         const authResp = await authenticate(request, env);
         if (authResp) return authResp;
         const perms = Array.isArray(request.user.permissions) ? request.user.permissions : JSON.parse(request.user.permissions || '[]');
         if (!perms.includes('admin')) return new Response(JSON.stringify({ message: 'Forbidden: admin only' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
 
-        // Read schema from request body or fallback to embedded SQL in body (should be sent by client)
         const body = await request.json().catch(() => ({}));
         const sql = body.sql || env.INIT_SQL || '';
         if (!sql) return new Response(JSON.stringify({ message: 'No SQL provided' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 
-        // Split statements and execute sequentially
         const statements = sql.split(/;\s*(?=\n|$)/g).map(s => s.trim()).filter(Boolean);
         for (const st of statements) {
             await env.DB.prepare(st).run();
@@ -127,9 +130,6 @@ router.post('/api/init-db', async (request, env) => {
         return handleDbError(error, 'DB init failed');
     }
 });
-
-// Other CRUD routes (users + collections) - omitted for brevity but should be same as before.
-// For the bundle, we'll include users CRUD minimal endpoints for admin management.
 
 router.post('/api/users', async (request, env) => {
     const authResp = await authenticate(request, env);
@@ -166,10 +166,10 @@ router.get('/api/users', async (request, env) => {
     }
 });
 
-router.get('/api/users/:id', async (request, env) => {
+router.get('/api/users/:id', async (request, env, ctx) => {
     const authResp = await authenticate(request, env);
     if (authResp) return authResp;
-    const { id } = request.params;
+    const { id } = ctx.params;
     try {
         const requesterPerms = Array.isArray(request.user.permissions) ? request.user.permissions : JSON.parse(request.user.permissions || '[]');
         if (request.user.id !== id && !requesterPerms.includes('users')) return new Response(JSON.stringify({ message: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
@@ -182,12 +182,12 @@ router.get('/api/users/:id', async (request, env) => {
     }
 });
 
-router.put('/api/users/:id', async (request, env) => {
+router.put('/api/users/:id', async (request, env, ctx) => {
     const authResp = await authenticate(request, env);
     if (authResp) return authResp;
     const authzResp = await authorize('users')(request, env);
     if (authzResp) return authzResp;
-    const { id } = request.params;
+    const { id } = ctx.params;
     const { email, password, permissions } = await request.json();
     try {
         const isAdmin = Array.isArray(request.user.permissions) ? request.user.permissions.includes('users') : JSON.parse(request.user.permissions || '[]').includes('users');
@@ -208,12 +208,12 @@ router.put('/api/users/:id', async (request, env) => {
     }
 });
 
-router.delete('/api/users/:id', async (request, env) => {
+router.delete('/api/users/:id', async (request, env, ctx) => {
     const authResp = await authenticate(request, env);
     if (authResp) return authResp;
     const authzResp = await authorize('users')(request, env);
     if (authzResp) return authzResp;
-    const { id } = request.params;
+    const { id } = ctx.params;
     if (request.user.id === id) return new Response(JSON.stringify({ message: 'Cannot delete yourself' }), { status: 403, headers: { 'Content-Type': 'application/json' } });
     try {
         await env.DB.prepare('DELETE FROM users WHERE id = ?').bind(id).run();
@@ -223,7 +223,6 @@ router.delete('/api/users/:id', async (request, env) => {
     }
 });
 
-// Simple /api/me endpoint to validate token
 router.get('/api/me', async (request, env) => {
     const authResp = await authenticate(request, env);
     if (authResp) return authResp;
@@ -244,7 +243,7 @@ export default {
             return new Response(null, { status: 204, headers: corsHeaders });
         }
         try {
-            const response = await router.handle(request, env);
+            const response = await router.handle(request, env, ctx);
             if (!response) return new Response(JSON.stringify({ message: 'Not Found' }), { status: 404, headers: { 'Content-Type': 'application/json', ...corsHeaders } });
             for (const [k, v] of Object.entries(corsHeaders)) response.headers.set(k, v);
             if (!response.headers.get('Content-Type')) response.headers.set('Content-Type', 'application/json');
