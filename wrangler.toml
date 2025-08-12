@@ -1,16 +1,17 @@
 name = "sge-backend"
 main = "index.js"
-compatibility_date = "2025-08-11" # Use uma data recente
+compatibility_date = "2025-08-11"
 
-# Este arquivo wrangler.toml é para o Cloudflare Pages/Workers via Git.
-# As variáveis de ambiente e bindings D1 serão configurados diretamente no painel do Cloudflare.
-# Portanto, as seções `[vars]` e `[[d1_databases]]` não são necessárias aqui,
-# mas as deixo comentadas para referência de como seriam se você usasse `wrangler deploy` localmente.
-
+# Configure these bindings in Cloudflare Dashboard (Workers) or via wrangler secrets/env.
  [[d1_databases]]
  binding = "DB"
  database_name = "sge-database"
- database_id = "8c1c9fd4-f5bd-4aea-a2d6-a39bd2b2c1ac" # Este será configurado no painel do Cloudflare
+ database_id = "8c1c9fd4-f5bd-4aea-a2d6-a39bd2b2c1ac"
 
- [vars]
- JWT_SECRET = "3f0d1d0e4b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a" # Este será configurado no painel do Cloudflare
+[vars]
+# JWT_SECRET must be set in the Cloudflare dashboard or via wrangler environment
+JWT_SECRET = "3f0d1d0e4b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a1e1d0b2e4f0a"
+
+# Optional:
+#ALLOW_DB_INIT = "true"   # Only set to "true" temporarily to allow /api/init-db to run
+# INIT_SQL = "<the full SQL to run to initialize DB>"  # or send SQL in POST body to /api/init-db
